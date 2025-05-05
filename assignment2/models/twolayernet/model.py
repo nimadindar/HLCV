@@ -70,7 +70,10 @@ class TwoLayerNetv1(object):
         # of shape (N, C).                                                          #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        h1 = np.dot(X, W1) + b1 # to keep dimensions correct
+        h1 = np.maximum(0, h1)  # ReLU activation
+        h2 = np.dot(h1, W2) + b2
+        softmax_scores = np.exp(h2) / np.sum(np.exp(h2), axis=1, keepdims=True)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         # If the targets are not given then jump out, we're done
@@ -116,8 +119,7 @@ class TwoLayerNetv2(TwoLayerNetv1):
         # from the parent (i.e v1) class.                                             #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-
+        softmax_scores = self.forward(X)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         # If the targets are not given then jump out, we're done
@@ -133,10 +135,13 @@ class TwoLayerNetv2(TwoLayerNetv1):
         # classifier loss.                                                          #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-
+        correct_score = softmax_scores[np.arange(N), y]
+        data_loss = (-1/N)*np.sum(np.log(correct_score))
+        W1_reg = np.sum(W1**2)
+        W2_reg = np.sum(W2**2)
+        reg_loss = (W1_reg + W2_reg)
+        loss = data_loss + reg*reg_loss
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
         return loss
     
     @abstractmethod
