@@ -70,10 +70,11 @@ class TwoLayerNetv1(object):
         # of shape (N, C).                                                          #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        h1 = np.dot(X, W1) + b1 # to keep dimensions correct
-        h1 = np.maximum(0, h1)  # ReLU activation
-        h2 = np.dot(h1, W2) + b2
-        softmax_scores = np.exp(h2) / np.sum(np.exp(h2), axis=1, keepdims=True)
+        a1 = X
+        z2 = np.dot(X, W1) + b1 # to keep dimensions correct
+        a2 = np.maximum(0, z2)  # ReLU activation
+        z3 = np.dot(a2, W2) + b2
+        softmax_scores = np.exp(z3) / np.sum(np.exp(z3), axis=1, keepdims=True)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         # If the targets are not given then jump out, we're done
@@ -188,7 +189,11 @@ class TwoLayerNetv3(TwoLayerNetv2):
         # Thus you can simply use the method from the parent class.                   #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)****
-
+        a1 = X
+        z2 = np.dot(X, W1) + b1 # to keep dimensions correct
+        a2 = np.maximum(0, z2)  # ReLU activation
+        z3 = np.dot(a2, W2) + b2
+        scores = np.exp(z3) / np.sum(np.exp(z3), axis=1, keepdims=True)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         # If the targets are not given then jump out, we're done
@@ -207,7 +212,7 @@ class TwoLayerNetv3(TwoLayerNetv2):
         # from the parent (i.e v2) class.                                             #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        loss = self.compute_loss(X, y, reg)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         # Backward pass: compute gradients
@@ -218,8 +223,21 @@ class TwoLayerNetv3(TwoLayerNetv2):
         # grads['W1'] should store the gradient on W1, and be a matrix of same size #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        
+        # let delta be a matrix with 1 for the correct class and 0 for all other classes
+        delta = np.zeros(scores.shape)
+        delta[np.arange(N), y] = 1
+        score_diff = scores - delta
+        dz3 = score_diff / N
+        grads['W2'] = np.dot(a2.T, dz3) + 2*reg*self.params['W2']
+        grads['b2'] = np.sum(dz3, axis=0)
+        # Compute gradient wrt ReLU layer. Computematrix saying which ReLU were active
+        # during forward pass
+        active_relu = np.zeros(z2.shape)
+        active_relu[z2 > 0] = 1
+        dz2 = np.dot(dz3, W2.T) * active_relu
+        grads['b1'] = np.sum(dz2, axis=0)
+        # grads['W1'] = np.dot(dz2, a1.T).T + 2*reg*self.params['W1'].T
+        grads['W1'] = np.dot(a1.T, dz2) + 2*reg*self.params['W1']
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return loss, grads
@@ -293,9 +311,10 @@ class TwoLayerNetv4(TwoLayerNetv3):
             # Do not forget to apply the learning_rate                              #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-
-
+            self.params['W1'] -= learning_rate * grads['W1']
+            self.params['b1'] -= learning_rate * grads['b1']  
+            self.params['W2'] -= learning_rate * grads['W2']
+            self.params['b2'] -= learning_rate * grads['b2']
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
             if verbose and it % 100 == 0:
