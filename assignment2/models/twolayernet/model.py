@@ -358,8 +358,8 @@ class TwoLayerNetv4(TwoLayerNetv3):
         # TODO: Implement this function; it should be VERY simple!                #
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-
+        scores = self.forward(X)
+        y_pred = scores.max(axis=1)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return y_pred
