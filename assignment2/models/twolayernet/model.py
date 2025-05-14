@@ -358,8 +358,9 @@ class TwoLayerNetv4(TwoLayerNetv3):
         # TODO: Implement this function; it should be VERY simple!                #
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        # Compute the scores for the input data
         scores = self.forward(X)
-        y_pred = scores.max(axis=1)
+        y_pred = np.argmax(scores, axis=1) # The predicted class is the one with the highest score
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return y_pred
