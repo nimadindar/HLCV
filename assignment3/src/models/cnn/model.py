@@ -69,7 +69,38 @@ class ConvNet(BaseModel):
         # You can use matlplotlib.imshow to visualize an image in python                #
         #################################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        pass
+        first_conv = self.model[0]
+        weights = first_conv.weight.detach().cpu().numpy()
+
+        num_filters = weights.shape[0]
+        grid_rows, grid_cols = 16, 8
+        filter_size = 3
+        padding = 1
+
+        large_img_height = grid_rows * (filter_size + padding) - padding
+        large_img_width = grid_cols * (filter_size + padding) - padding
+        large_img = np.zeros((large_img_height, large_img_width, 3), dtype=np.float32)
+
+        for i in range(num_filters):
+            row = i//grid_cols
+            col = i % grid_cols
+
+            filter_img = weights[i]
+            filter_img = self._normalize(filter_img.transpose(1,2,0))
+
+            row_start = row * (filter_size + padding)
+            row_end = row_start + filter_size
+
+            col_start = col * (filter_size + padding)
+            col_end = col_start + filter_size
+
+            large_img[row_start:row_end, col_start:col_end, :] = filter_img
+        
+        plt.figure(figsize=(10,10))
+        plt.imshow(large_img)
+        plt.axis('off')
+        plt.title('Figure of first convolutional layer filter')
+        plt.show()
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     def forward(self, x):
@@ -80,6 +111,6 @@ class ConvNet(BaseModel):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****        
 
-        out = None
+        out = self.model(x)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return out
