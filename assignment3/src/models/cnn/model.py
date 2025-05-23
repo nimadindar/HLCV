@@ -14,7 +14,12 @@ class ConvNet(BaseModel):
         # (basically store them in self)                                  #
         ###################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        self.input_size = input_size
+        self.hidden_layers = hidden_layers
+        self.num_classes = num_classes
+        self.activation = activation
+        self.norm_layer = norm_layer
+        self.drop_prob = drop_prob
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         self._build_model()
 
@@ -29,8 +34,22 @@ class ConvNet(BaseModel):
         # Do NOT add any softmax layers.                                                #
         #################################################################################
         layers = []
+        in_channels = self.input_size
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        for i, out_channels in enumerate(self.hidden_layers):
+            layers.append(nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1))
+            if self.norm_layer is not None:
+                layers.append(self.norm_layer(out_channels))
+            layers.append(self.activation)
+            layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
+            if self.drop_prob > 0:
+                layers.append(nn.Dropout(p=self.drop_prob))
+            in_channels = out_channels
 
+        layers.append(nn.Flatten())
+        layers.append(nn.Linear(self.hidden_layers[-1], self.num_classes))
+
+        self.model = nn.Sequential(*layers)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     def _normalize(self, img):
