@@ -7,7 +7,8 @@ from ..base_model import BaseModel
 
 class ConvNet(BaseModel):
     def __init__(self, input_size, hidden_layers, num_classes, activation, norm_layer, drop_prob=0.0):
-        super(ConvNet, self).__init__()
+        # super(ConvNet, self).__init__()
+        super().__init__()
 
         ############## TODO ###############################################
         # Initialize the different model parameters from the config file  #
@@ -41,7 +42,8 @@ class ConvNet(BaseModel):
             if self.norm_layer is not None:
                 layers.append(self.norm_layer(out_channels))
             layers.append(self.activation)
-            layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
+            if i < (len(self.hidden_layers) - 1):
+                layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
             if self.drop_prob > 0:
                 layers.append(nn.Dropout(p=self.drop_prob))
             in_channels = out_channels

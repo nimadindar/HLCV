@@ -16,7 +16,7 @@ q1_experiment = dict(
         input_size = 3,
         num_classes = 10,
         hidden_layers = [128, 512, 512, 512, 512, 512],
-        activation = nn.ReLU,
+        activation = nn.ReLU(),
         norm_layer = nn.BatchNorm2d,
         drop_prob = 0.4,
     ),
