@@ -15,7 +15,12 @@ class VGG11_bn(BaseModel):
         # Note that this config is for the MLP head (and not the VGG backbone) #
         ########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        self.layer_config = layer_config
+        self.num_classes = num_classes
+        self.activation = activation
+        self.norm_layer = norm_layer
+        self.fine_tune = fine_tune
+        self.weights = weights
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         self._build_model()
 
@@ -31,8 +36,26 @@ class VGG11_bn(BaseModel):
         # the fine_tune flag.                                                           #
         #################################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        pass
+        feature_extractor = vgg11_bn(weights = self.weights if self.weights else None)
 
+        self.features = feature_extractor.features
+
+        if not self.fine_tune:
+            for param in self.features.parameters():
+                param.requires_grad = False
+        
+        layers = [nn.Flatten()]
+        in_features = 512
+
+        for out_features in self.layer_config:
+            layers.append(nn.Linear(in_features, out_features))
+            layers.append(self.norm_layer(out_features))
+            layers.append(self.activation())
+            in_features = out_features
+
+        layers.append(nn.Linear(in_features, self.num_classes))
+
+        self.classifier = nn.Sequential(*layers)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     def forward(self, x):
@@ -40,8 +63,7 @@ class VGG11_bn(BaseModel):
         # TODO: Implement the forward pass computation.                                 #
         # Do not apply any softmax on the output                                        #
         #################################################################################
-        # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        out = None
+        # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)***** 
+        return self.classifier(self.features(x))
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        return out
     
