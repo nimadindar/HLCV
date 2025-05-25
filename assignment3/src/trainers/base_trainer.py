@@ -53,6 +53,8 @@ class BaseTrainer:
         # This part doesn't do anything if you don't have a GPU.
         self._device, self._device_ids = prepare_device(self.trainer_config['n_gpu'])
         
+        self.best_metric = float('-inf') if self.monitor_mode == 'max' else float('inf')
+        
         self.start_epoch = 1
         self.best_epoch = 1
         self.current_epoch = 1
@@ -131,7 +133,19 @@ class BaseTrainer:
                     # (e.g for loss values we would want min, but for accuracy we want max.)                        #
                     #################################################################################################   
                     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-                    pass
+                    current_metric = log[self.monitor_metric]
+                    is_better = (self.monitor_mode == 'max' and current_metric > self.best_metric) or\
+                        (self.monitor_mode == 'min' and current_metric < self.best_metric)
+                    if is_better:
+                        self.best_metric = current_metric
+                        self.best_epoch = self.current_epoch
+                        self.not_improved_count = 0
+                        save_path = os.path.join(self.checkpoint_dir, 'best_val_model.pth')
+                        self.save_model(path=save_path)
+                        self.logger.info(f"Saved best model at epoch {self.current_epoch} with {self.monitor_metric}={current_metric:.5f}")
+
+                    else:
+                        self.not_improved_count += 1
                     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
                     ############################################################################################
@@ -139,8 +153,9 @@ class BaseTrainer:
                     # the last self.early_stop steps, see if you should break the training loop.               #
                     ############################################################################################
                     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-
+                    if self.early_stop > 0 and self.not_improved_count >= self.early_stop:
+                        self.logger.info(f"Early stopping triggered after {self.not_improved_count} epochs without improvement.")
+                        break
                     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
                 else:
                     ## The metric wasn't measured in this epoch. Don't change not_impoved_count or similar things here!!!
@@ -172,7 +187,7 @@ class BaseTrainer:
         ###  TODO  ################################################
         # Based on the self.current_epoch and self.eval_interval, determine if we should evaluate.
         # You can take hint from saving logic implemented in BaseTrainer.train() method
-        return True
+        return self.current_epoch % self.eval_period == 0
         #########################################################
     
     @abstractmethod # To be implemented by the child classes!
