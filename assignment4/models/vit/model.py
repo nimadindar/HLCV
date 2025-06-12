@@ -80,10 +80,15 @@ class EncoderBlock(nn.Module):
         # Note that all the relevant modules are already defined in the init above.
         # You may also have to return attention weights based on self.need_weights
         # Hint: There's already a `need_weights` argument for nn.MultiheadAttention forward pass. See the docs.
+        x = self.ln_1(input)
+        attn_output, attn_weights = self.self_attention(x,x,x, need_weights = self.need_weights)
+        x = input + attn_output
 
-        result = None
-        attention_weights = None # Needed only if self.need_weights is True for this specific Block
-        raise NotImplementedError
+        x_mlp = self.ln_2(x)
+        mlp_output = self.mlp(x_mlp)
+        result = x + mlp_output
+
+        attention_weights = attn_weights if self.need_weights else None
         ################################
 
         if self.need_weights:
@@ -118,7 +123,13 @@ class Encoder(nn.Module):
             ## Hint: Set need_weights to True only for last Block and False for others
             ## As we would like to visualize attention weights for last layer later.
 
-            layers[f"encoder_layer_{i}"] = None # Replace None with Block
+            layers[f"encoder_layer_{i}"] = EncoderBlock(
+                num_heads=num_heads,
+                hidden_dim=hidden_dim,
+                mlp_dim=mlp_dim,
+                norm_layer=norm_layer,
+                need_weights=(i==num_layers-1)
+            )
             #################################
 
         self.layers = nn.Sequential(layers)
@@ -132,9 +143,16 @@ class Encoder(nn.Module):
         ### TODO Q1: Apply the forward pass over the Encoder.
         ## 1. Add Positional Embedding (self.pos_embedding) to the input
         ## 2. Feed it to self.layers and get the result and attention_weights
-        result = None
+        x = input + self.pos_embedding
+
         attention_weights = None
-        raise NotImplementedError
+
+        for layer in self.layers:
+            if layer.need_weights:
+                x, attention_weights = layer(x)
+            else:
+                x = layer(x)
+        result = x 
         #####################################
 
         result = self.ln(result) # Final layer norm
@@ -169,9 +187,8 @@ class VisionTransformer(nn.Module):
         # in order to get (patch_size x patch_size) non-overlapping patches.
         # For example, in the figure in lecture, the image is broken 
         # into 9 non-overlapping patches.
-        kernel_size = None
-        stride = None
-        raise NotImplementedError
+        kernel_size = patch_size
+        stride = patch_size
         ############################
         self.conv_proj = nn.Conv2d(
             in_channels=3, out_channels=hidden_dim, kernel_size=kernel_size, stride=stride
@@ -242,15 +259,12 @@ class VisionTransformer(nn.Module):
         ##########################
         # TODO Q1: Concatenate the CLS tokens `batch_class_token` to your input tokens `x`.
         # Hint: the dimensions of X are as follows : (batch, tokens, embedding)
-        x = None
-        raise NotImplementedError
+        x = torch.cat((batch_class_token, x), dim = 1)
         ##########################
         
         ##########################
         # TODO Q1: Feed the tokens `x` (i.e image patches and CLS token) to the encoder and get the results and attention_weights
-        results = None
-        attention_weights = None
-        raise NotImplementedError
+        results, attention_weights = self.encoder(x)
         ##########################
 
         # Take out the CLS token (in fact "tokens" because we have a batch)
@@ -258,8 +272,7 @@ class VisionTransformer(nn.Module):
         
         ##########################
         # TODO Q1: Apply the final classification head
-        final_logits = None
-        raise NotImplementedError
+        final_logits = self.heads(cls_token)
         ##########################
 
         visualized_attention = self.visualize_cls(attention_weights, n_h, n_w)
@@ -287,5 +300,11 @@ class VisionTransformer(nn.Module):
         # Also note that the attention of CLS token w.r.t other tokens also includes
         # its attention to itself (which should not be used for visualization)
 
-        raise NotImplementedError
+        cls_attention = attention_weights[:,0,1:]
+
+        cls_attention = cls_attention.reshape(-1, n_h, n_w)
+
+        cls_attention = cls_attention.unsqueeze(-1)
+    
+        return cls_attention
         #########################
